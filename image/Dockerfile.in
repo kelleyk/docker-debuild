@@ -1,0 +1,15 @@
+# With parts cribbed from https://github.com/dochang/docker-debuild
+
+FROM FROM_IMAGE
+MAINTAINER Kevin Kelley <kelleyk@kelleyk.net>
+
+ADD apt-config.sh /apt-config.sh
+RUN chmod +x /apt-config.sh
+RUN /apt-config.sh && rm apt-config.sh
+
+VOLUME ["/source"]
+VOLUME ["/build"]
+WORKDIR /build
+
+CMD "/start.sh"
+ADD start.sh /start.sh
