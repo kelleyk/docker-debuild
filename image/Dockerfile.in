@@ -11,5 +11,6 @@ VOLUME ["/source"]
 VOLUME ["/build"]
 WORKDIR /build
 
-CMD "/start.sh"
-ADD start.sh /start.sh
+CMD "/entry.sh"
+ADD entry.sh /entry.sh
+ADD build-package.sh /build-package.sh

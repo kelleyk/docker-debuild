@@ -1,12 +1,16 @@
 packages:
   # Baseline things necessary to build any Debian package.
-  - build-essential fakeroot devscripts
+  - build-essential fakeroot devscripts equivs
+  - dpatch lintian quilt
   # Required by our git-buildpackage workflow.
-  - git git-buildpackage
+  - git git-buildpackage pristine-tar
   # Optional; but just by having it here, we will get -dbgsym packages without having to modify the
   # packages' control files.
   - pkg-create-dbgsym
 
-  # # Do we need to manually install lintian?
-  # - lintian
-  
+  # Do we need to manually install lintian?
+  - lintian
+  # ca-certificates
+  # dput
+  # patchutils
+
