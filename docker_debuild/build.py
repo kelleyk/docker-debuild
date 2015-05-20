@@ -31,6 +31,9 @@ def build_parser():
                    'host\'s apt proxy configuration.')
     p.add_argument('--no-apt-proxy', action='store_const', const=False, dest='apt_proxy',
                    help='Prevent the use of any apt proxy.')
+
+    p.add_argument('--no-rm', '--no-remove-container', action='store_false', dest='remove_container',
+                   help='Do not automatically remove the container after the build ends.')
     
     return p
 
@@ -81,7 +84,7 @@ def main(argv=None):
         subprocess.check_call(('sudo', 'chown', '-R', '{}:{}'.format(os.geteuid(), os.getegid()), build_vol_path))
 
     finally:
-        if container_id is not None:
+        if container_id is not None and args.remove_container:
             subprocess.check_call(('docker', 'rm', '-f', container_id))
 
 
