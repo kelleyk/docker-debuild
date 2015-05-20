@@ -14,7 +14,7 @@ setup(
     install_requires=[
         # 'arrow',
         'six',
-        # 'intensional',
+        'intensional',
     ],
     entry_points={
         'console_scripts': [

@@ -3,6 +3,8 @@
 
 See user_namespaces(7), from which the outline of configure_user_ns() is cribbed, for more information.
 """
+from __future__ import division, absolute_import, unicode_literals, print_function
+
 import os
 import os.path
 import sys
@@ -12,14 +14,24 @@ import argparse
 import contextlib
 import subprocess
 
+from .apt_proxy_utils import get_apt_proxy
+
 
 def build_parser():
     p = argparse.ArgumentParser()
-    # p.add_argument('target_pkg', action='store')
+    # p.add_argument('target-pkg', action='store', dest='target_pkg')
+    # p.add_argument('build-vol-path', action='store', dest='build_vol_path')
     p.add_argument('target_suite', action='store')
-    # p.add_argument('build_vol_path', action='store')
     p.add_argument('build_args', nargs='*')
     p.add_argument('--image', metavar='docker-image-ref', action='store', default=None)
+
+    p.add_argument('--apt-proxy', metavar='proxy-url', action='store', default=None, dest='apt_proxy',
+                   help='Explicitly specify the URL of an apt proxy that should be used, such as '
+                   '"http://10.0.0.1:3142/".  If not given, the default behavior is to use the '
+                   'host\'s apt proxy configuration.')
+    p.add_argument('--no-apt-proxy', action='store_const', const=False, dest='apt_proxy',
+                   help='Prevent the use of any apt proxy.')
+    
     return p
 
 
@@ -34,7 +46,10 @@ def main(argv=None):
     build_args = list(args.build_args)
 
     # TODO: Autodetect.
-    apt_proxy_url = 'http://192.168.0.1:3142/'
+    apt_proxy_url = args.apt_proxy
+    if apt_proxy_url is None:
+        print('I: Checking host configuration for apt proxy...', file=sys.stderr)
+        apt_proxy_url = get_apt_proxy()       
     
     docker_options = []
     if apt_proxy_url:
