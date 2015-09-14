@@ -44,8 +44,8 @@ mk-build-deps --install --remove --tool "apt-get --no-install-recommends --yes"
 # Workaround:  (We make sure to remove the package, because otherwise git-buildpackage complains about the repo being unclean.)
 BUILD_DEPS_PKG="$(find . -maxdepth 1 -iname '*build-deps_*.deb')"
 if test -n "${BUILD_DEPS_PKG}"; then
-    dpkg -i ${BUILD_DEPS_PKG}
-    rm ${BUILD_DEPS_PKG}
+    dpkg -i "${BUILD_DEPS_PKG}"
+    rm "${BUILD_DEPS_PKG}"
 fi
 
 # eval "debuild $DOCKER_DEBUILD_OPTS -us -uc --lintian-opts --allow-root"

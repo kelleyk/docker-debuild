@@ -34,6 +34,10 @@ def build_parser():
 
     p.add_argument('--no-rm', '--no-remove-container', action='store_false', dest='remove_container',
                    help='Do not automatically remove the container after the build ends.')
+
+    # p.add_argument('--source-only', action='store_true',
+    #                help='Build only source packages; do not build binary packages.  (This option is '
+    #                'appropriate for preparing packages to be uploaded to Launchpad.)')
     
     return p
 
@@ -48,11 +52,17 @@ def main(argv=None):
     target_pkg = os.path.basename(os.getcwd())
     build_args = list(args.build_args)
 
+    # if args.source_only:
+    #     # We always build unsigned packages ('-uc -us') because we don't want to deal with getting keys into
+    #     # the build containers and the ensuing security mess.  The packages can be signed out here in the
+    #     # host environment with the user's keychain.
+    #     build_args.extend(('-S', '-us', 'uc'))
+
     # TODO: Autodetect.
     apt_proxy_url = args.apt_proxy
     if apt_proxy_url is None:
         print('I: Checking host configuration for apt proxy...', file=sys.stderr)
-        apt_proxy_url = get_apt_proxy()       
+        apt_proxy_url = get_apt_proxy()
     
     docker_options = []
     if apt_proxy_url:

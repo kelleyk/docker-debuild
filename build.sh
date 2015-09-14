@@ -2,8 +2,8 @@
 
 set -e
 
-# SUITES="vivid utopic trusty precise"
-SUITES=utopic
+SUITES="vivid utopic trusty precise"
+#SUITES=vivid
 
 for SUITE in ${SUITES}; do
 
