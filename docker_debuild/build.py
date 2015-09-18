@@ -35,6 +35,10 @@ def build_parser():
     p.add_argument('--no-rm', '--no-remove-container', action='store_false', dest='remove_container',
                    help='Do not automatically remove the container after the build ends.')
 
+    p.add_argument('--env', '-e', action='append',
+                   help='Set an environment variable that will be passed to debuild inside the container.'
+                   '  Several variables (e.g. DEB_BUILD_OPTIONS) can control how debuild behaves.')
+    
     # p.add_argument('--source-only', action='store_true',
     #                help='Build only source packages; do not build binary packages.  (This option is '
     #                'appropriate for preparing packages to be uploaded to Launchpad.)')
@@ -67,6 +71,9 @@ def main(argv=None):
     docker_options = []
     if apt_proxy_url:
         docker_options.extend(('-e', 'APT_PROXY_URL={}'.format(apt_proxy_url)))
+    for env_kv in (args.env or ()):
+        # XXX: TODO: Check env_kv for correct format and to avoid duplicate env var names.
+        docker_options.extend(('-e', env_kv))
 
     container_id = None
     try:
