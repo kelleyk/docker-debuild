@@ -8,10 +8,7 @@ from __future__ import division, absolute_import, unicode_literals, print_functi
 import os
 import os.path
 import sys
-import time
-import signal
 import argparse
-import contextlib
 import subprocess
 
 from .apt_proxy_utils import get_apt_proxy
