@@ -3,14 +3,9 @@
 FROM FROM_IMAGE
 MAINTAINER Kevin Kelley <kelleyk@kelleyk.net>
 
-ADD apt-config.sh /apt-config.sh
-RUN chmod +x /apt-config.sh
-RUN /apt-config.sh && rm apt-config.sh
+ADD apt-config.sh entry.sh build-package.sh /
+RUN chmod +x /apt-config.sh && /apt-config.sh && rm apt-config.sh
 
-VOLUME ["/source"]
-VOLUME ["/build"]
+VOLUME ["/source", "/build"]
 WORKDIR /build
-
 CMD "/entry.sh"
-ADD entry.sh /entry.sh
-ADD build-package.sh /build-package.sh
