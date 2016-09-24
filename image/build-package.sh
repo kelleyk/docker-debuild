@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-set -e
+set -euf -o pipefail
 
 # if [ "$(ls -A /build/buildd)" ]; then
 #     >&2 echo "E: Build volume is not empty; boldly refusing to clear it out myself."

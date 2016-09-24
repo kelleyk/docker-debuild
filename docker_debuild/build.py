@@ -10,8 +10,12 @@ import os.path
 import sys
 import argparse
 import subprocess
+import contextlib
+import tempfile
 
+from .util import TemporaryDirectory, realpath
 from .apt_proxy_utils import get_apt_proxy
+from .apt_config_utils import apt_add_source, apt_key_recv, apt_key_fetch
 
 
 def build_parser():
@@ -35,13 +39,27 @@ def build_parser():
     p.add_argument('--env', '-e', action='append',
                    help='Set an environment variable that will be passed to debuild inside the container.'
                    '  Several variables (e.g. DEB_BUILD_OPTIONS) can control how debuild behaves.')
-    
-    # p.add_argument('--source-only', action='store_true',
-    #                help='Build only source packages; do not build binary packages.  (This option is '
-    #                'appropriate for preparing packages to be uploaded to Launchpad.)')
+    p.add_argument('--docker-arg', action='append',
+                   help='Specify an argument that will be passed to "docker run".')
+
+    p.add_argument('--tmp-path', metavar='path', action='store',
+                   help='Path in which a temporary directory will be created for each build.  If not given, '
+                   'the default system location (e.g. /tmp) is used.')
+
+    p.add_argument('--apt-source', action='append',
+                   help='A package source, in the format of a line from an apt sources.list file.')
+    p.add_argument('--apt-key-id', action='append',  # specify keyserver?
+                   help='The ID of a key that should be trusted to sign package repositories; the key will be fetched from keyserver.ubuntu.com.')
+    p.add_argument('--apt-key-url', action='append',
+                   help='The URL of a key that should be trustted to sign package repositories.')
     
     return p
 
+
+@contextlib.contextmanager
+def noop_contextmanager():
+    yield
+    
 
 def main(argv=None):
     argv = argv or sys.argv
@@ -53,53 +71,70 @@ def main(argv=None):
     target_pkg = os.path.basename(os.getcwd())
     build_args = list(args.build_args)
 
-    # if args.source_only:
-    #     # We always build unsigned packages ('-uc -us') because we don't want to deal with getting keys into
-    #     # the build containers and the ensuing security mess.  The packages can be signed out here in the
-    #     # host environment with the user's keychain.
-    #     build_args.extend(('-S', '-us', 'uc'))
-
-    # TODO: Autodetect.
     apt_proxy_url = args.apt_proxy
     if apt_proxy_url is None:
         print('I: Checking host configuration for apt proxy...', file=sys.stderr)
         apt_proxy_url = get_apt_proxy()
     
-    docker_options = []
+    docker_options = list(args.docker_arg or ())
     if apt_proxy_url:
         docker_options.extend(('-e', 'APT_PROXY_URL={}'.format(apt_proxy_url)))
     for env_kv in (args.env or ()):
         # XXX: TODO: Check env_kv for correct format and to avoid duplicate env var names.
         docker_options.extend(('-e', env_kv))
 
-    container_id = None
-    try:
-        container_id = subprocess.check_output(
-            ['docker', 'create',
-             '-v', '{}:/build/buildd:rw'.format(build_vol_path)] +
-            docker_options +
-            [image_tag,
-             '/entry.sh', target_pkg, target_suite] +
-            build_args).strip()
-
-        p = subprocess.Popen(
-            ('docker', 'start', '--attach=true', '--interactive=true', container_id),
-            # stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            stdout=sys.stdout, stderr=sys.stderr,
-        )
-
-        container_pid = int(subprocess.check_output(
-            ('docker', 'inspect', '--format={{.State.Pid}}', container_id)).strip())
+    tmp_path = realpath(args.tmp_path or tempfile.gettempdir())
+    with_apt_conf = args.apt_source or args.apt_key_id or args.apt_key_url
+    if with_apt_conf:
+        tmpdir = TemporaryDirectory(dir=tmp_path, suffix='.docker-debuild')
         
-        p.wait()
+        os.mkdir(os.path.join(tmpdir.pathname, 'sources.list.d'))
+        docker_options.extend(('-v', '{}:/etc/apt/sources.list.d:ro'.format(os.path.join(tmpdir.pathname, 'sources.list.d'))))
+        for i, line in enumerate(args.apt_source or ()):
+            apt_add_source(tmpdir.pathname, str(i), line)
+            
+        os.mkdir(os.path.join(tmpdir.pathname, 'trusted.gpg.d'))
+        docker_options.extend(('-v', '{}:/etc/apt/trusted.gpg.d:ro'.format(os.path.join(tmpdir.pathname, 'trusted.gpg.d'))))
+        i = 0
+        for key_id in args.apt_key_id or ():
+            apt_key_recv(tmpdir.pathname, str(i), key_id)
+            i += 1
+        for key_url in args.apt_key_url or ():
+            apt_key_fetch(tmpdir.pathname, str(i), key_url)
+            i += 1
+            
+    else:
+        tmpdir = noop_contextmanager()
+        
+    with tmpdir:
+        container_id = None
+        try:
+            container_id = subprocess.check_output(
+                ['docker', 'create',
+                 '-v', '{}:/build/buildd:rw'.format(build_vol_path)] +
+                docker_options +
+                [image_tag,
+                 '/entry.sh', target_pkg, target_suite] +
+                build_args).strip()
 
-        # XXX: This is a horrible hack, but without it, gbp will fail to clean its temporary export and blow up.
-        # XXX: The 'real' fix is to unshare the user namespace and map root in the build container to our EUID out here.
-        subprocess.check_call(('sudo', 'chown', '-R', '{}:{}'.format(os.geteuid(), os.getegid()), build_vol_path))
+            p = subprocess.Popen(
+                ('docker', 'start', '--attach=true', '--interactive=true', container_id),
+                # stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdout=sys.stdout, stderr=sys.stderr,
+            )
 
-    finally:
-        if container_id is not None and args.remove_container:
-            subprocess.check_call(('docker', 'rm', '-f', container_id))
+            container_pid = int(subprocess.check_output(
+                ('docker', 'inspect', '--format={{.State.Pid}}', container_id)).strip())
+
+            p.wait()
+
+            # XXX: This is a horrible hack, but without it, gbp will fail to clean its temporary export and blow up.
+            # XXX: The 'real' fix is to unshare the user namespace and map root in the build container to our EUID out here.
+            subprocess.check_call(('sudo', 'chown', '-R', '{}:{}'.format(os.geteuid(), os.getegid()), build_vol_path))
+
+        finally:
+            if container_id is not None and args.remove_container:
+                subprocess.check_call(('docker', 'rm', '-f', container_id))
 
 
 if __name__ == '__main__':
