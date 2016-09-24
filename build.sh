@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
+set -euf -o pipefail
+set -x
 
-set -e
+declare -a SUITES
+if test $# -eq 0; then
+    SUITES=("yakkety" "xenial" "wily" "trusty" "precise")
+else
+    SUITES=("$@")
+fi
 
-SUITES="wily vivid trusty precise"
+for SUITE in "${SUITES[@]}"; do
+    echo "*** updating base image: ${SUITE}"
 
-for SUITE in ${SUITES}; do
+    IMAGE_TAG_NAME="kelleyk/debuild"
+    IMAGE_TAG_VERSION=ubuntu-"${SUITE}"
+    FROM_IMAGE=ubuntu:"${SUITE}"
 
-  IMAGE_TAG=ubuntu-"${SUITE}"
-  FROM_IMAGE=ubuntu:"${SUITE}"
+    docker pull "${FROM_IMAGE}"
+    
+    apt-config-tool image/apt-config.yaml image/apt-config.sh
+    sed -e "s/FROM_IMAGE/$FROM_IMAGE/g" image/Dockerfile.in > image/Dockerfile
 
-  apt-config-tool image/apt-config.yaml image/apt-config.sh
-  sed -e "s/FROM_IMAGE/$FROM_IMAGE/g" image/Dockerfile.in > image/Dockerfile
-
-  # echo -e "\n****"
-  # cat image/apt-config.sh
-  # echo -e "****\n"
-
-  docker build -t kelleyk/debuild:"${IMAGE_TAG}" "$@" image/
-  
+    echo "*** building image: ${SUITE}"
+    docker build -t "${IMAGE_TAG_NAME}":"${IMAGE_TAG_VERSION}" "$@" image/  
 done
