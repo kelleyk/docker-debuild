@@ -4,7 +4,8 @@ FROM FROM_IMAGE
 MAINTAINER Kevin Kelley <kelleyk@kelleyk.net>
 
 ADD apt-config.sh entry.sh build-package.sh /
-RUN chmod +x /apt-config.sh && /apt-config.sh && rm apt-config.sh
+# N.B.: Added 'sync' as a workaround for 'Text file busy' error; see https://github.com/docker/docker/issues/9547.
+RUN sync && chmod +x /apt-config.sh && sync && /apt-config.sh && rm apt-config.sh
 
 VOLUME ["/source", "/build"]
 WORKDIR /build

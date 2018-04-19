@@ -39,6 +39,7 @@ apt-get update
 
 echo -e "\n************\nrunning mk-build-deps...\n************\n"
 # This *should* create a package, --install it, and then --remove it; but it doesn't seem to do either.  (See similar situation reported here: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=753657)
+# @KK: From the manpage: "default: apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends"
 mk-build-deps --install --remove --tool "apt-get --no-install-recommends --yes"
 # Workaround:  (We make sure to remove the package, because otherwise git-buildpackage complains about the repo being unclean.)
 BUILD_DEPS_PKG="$(find . -maxdepth 1 -iname '*build-deps_*.deb')"

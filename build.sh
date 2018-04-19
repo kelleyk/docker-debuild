@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euf -o pipefail
-set -x
 
 declare -a SUITES
 if test $# -eq 0; then
-    SUITES=("yakkety" "xenial" "wily" "trusty" "precise")
+    SUITES=("zesty" "yakkety" "xenial" "wily" "trusty")
 else
     SUITES=("$@")
 fi
@@ -22,5 +21,5 @@ for SUITE in "${SUITES[@]}"; do
     sed -e "s/FROM_IMAGE/$FROM_IMAGE/g" image/Dockerfile.in > image/Dockerfile
 
     echo "*** building image: ${SUITE}"
-    docker build -t "${IMAGE_TAG_NAME}":"${IMAGE_TAG_VERSION}" "$@" image/  
+    docker build -t "${IMAGE_TAG_NAME}":"${IMAGE_TAG_VERSION}" image/
 done
