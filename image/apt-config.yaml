@@ -6,9 +6,12 @@ packages:
   - debhelper
   # Required by our git-buildpackage workflow.
   - git git-buildpackage pristine-tar
-  # Optional; but just by having it here, we will get -dbgsym packages without having to modify the
-  # packages' control files.
-  - pkg-create-dbgsym
+
+  # As of debhelper 10 (artful), this has been deprecated in favor of functionality built into dh_strip and the package
+  # conflicts with debhelper.  Ref.: https://bugs.launchpad.net/ubuntu/+source/pkg-create-dbgsym/+bug/1738644
+  # # Optional; but just by having it here, we will get -dbgsym packages without having to modify the
+  # # packages' control files.
+  # - pkg-create-dbgsym
 
   # Do we need to manually install lintian?
   - lintian
