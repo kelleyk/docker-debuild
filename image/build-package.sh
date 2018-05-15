@@ -18,7 +18,7 @@ shift
 TARGET_SUITE="$1"
 shift
 
-if test -n "${APT_PROXY_URL}"; then
+if test -n "${APT_PROXY_URL-}"; then
     >&2 echo "I: Using apt proxy at ${APT_PROXY_URL}"
     echo "Acquire::http:Proxy \"${APT_PROXY_URL}\";" > /etc/apt/apt.conf.d/30proxy
 else
