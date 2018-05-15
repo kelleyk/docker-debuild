@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8; -*-
 
 import sys
+import os
 import os.path
 import subprocess
 
@@ -28,10 +29,17 @@ def apt_key_recv(conf_path, keyring, key_id, keyserver='keyserver.ubuntu.com'):
         raise
     p.communicate(sys.stdin)
 
+    os.chmod(keyring_path, 0o644)
 
+    
 def apt_key_fetch(conf_path, keyring, url):
+    keyring_path = os.path.join(conf_path, 'trusted.gpg.d', '{}.gpg'.format(keyring))
+    
     r = requests.get(url)
-    with open(os.path.join(conf_path, 'trusted.gpg.d', '{}.gpg'.format(keyring)), 'wb') as f:
+    with open(keyring_path, 'wb') as f:
         f.write(r.content)
     # XXX: Do we need to pipe things through gpg?
     #    wget -q -O - $URL | sudo gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/$KEYRING.gpg --import
+
+    os.chmod(keyring_path, 0o644)
+    
