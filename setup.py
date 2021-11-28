@@ -13,6 +13,7 @@ setup(
     packages=find_packages(include='docker_debuild.*'),
     install_requires=[
         # 'arrow',
+        'pyyaml<6.0',  # 6.0 drops support for Python 2.x
         'six',
         'intensional',
         'requests',
